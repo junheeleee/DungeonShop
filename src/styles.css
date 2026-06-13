@@ -293,6 +293,54 @@ blockquote {
   box-shadow: 0 0 4px rgba(111, 159, 114, 0.5);
 }
 
+.curse-note {
+  width: 100%;
+  margin-top: 4px;
+  padding: 6px 8px;
+  border-left: 2px solid var(--violet);
+  background: rgba(141, 121, 214, 0.1);
+  color: #bca8ff;
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.meter[data-warn="true"] {
+  border-color: rgba(198, 79, 66, 0.65);
+  animation: meter-warn 1.4s ease-in-out infinite;
+}
+
+.meter[data-warn="true"] strong {
+  color: var(--red) !important;
+}
+
+@keyframes meter-warn {
+  0%, 100% { background: rgba(36, 31, 26, 0.86); }
+  50% { background: rgba(198, 79, 66, 0.14); }
+}
+
+.action-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.action-buttons .primary-button {
+  margin-top: 0;
+}
+
+.action-buttons .ghost-button {
+  width: 100%;
+}
+
+.market-note {
+  margin: -8px 0 12px;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
 .bar-fill[data-risk="bad"] {
   background: var(--red);
 }

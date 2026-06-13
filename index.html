@@ -106,7 +106,10 @@
           </div>
           <div class="price-policies" id="policyButtons" aria-label="가격 정책"></div>
           <div class="inventory-list" id="inventoryList" aria-label="재고 목록"></div>
-          <button class="primary-button" id="sellButton" type="button">판매하고 보내기</button>
+          <div class="action-buttons">
+            <button class="primary-button" id="sellButton" type="button">판매하고 보내기</button>
+            <button class="ghost-button" id="skipButton" type="button">돌려보내기 (평판 -3)</button>
+          </div>
         </aside>
       </section>
 
@@ -116,6 +119,7 @@
             <span>아침 시장</span>
             <strong id="marketStatus">영업 중</strong>
           </div>
+          <p class="market-note">매일 첫 손님 전에만 구매 가능</p>
           <div class="market-list" id="marketList"></div>
         </section>
 

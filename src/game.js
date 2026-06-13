@@ -269,6 +269,7 @@ function cacheElements() {
     "nextDayButton",
     "logList",
     "matchHints",
+    "skipButton",
   ].forEach((id) => {
     els[id] = document.getElementById(id);
   });
@@ -365,7 +366,12 @@ function render() {
   els.saleValue.textContent = `${salePrice}G`;
   els.counterItem.textContent = selectedItem ? selectedItem.name : "제안 없음";
   els.sellButton.disabled = state.gameOver || !selectedItem || state.customerIndex > CUSTOMERS_PER_DAY;
+  els.skipButton.disabled = state.gameOver || state.customerIndex > CUSTOMERS_PER_DAY;
   els.nextDayButton.disabled = state.gameOver || state.customerIndex <= CUSTOMERS_PER_DAY;
+
+  els.investValue.parentElement.dataset.warn = state.investigation >= 70 ? "true" : "";
+  els.curseValue.parentElement.dataset.warn = state.curse >= 65 ? "true" : "";
+  els.repValue.parentElement.dataset.warn = state.reputation <= 15 ? "true" : "";
 
   if (state.gameOver) {
     els.sellButton.textContent = "영업 종료";
@@ -411,6 +417,13 @@ function renderCustomer(estimate) {
       s.textContent = `${ok ? "✓" : "✗"} ${label}`;
       els.matchHints.append(s);
     });
+    const curseItem = getSelectedItem();
+    if (curseItem && curseItem.curse) {
+      const cn = document.createElement("div");
+      cn.className = "curse-note";
+      cn.textContent = `⚠ 저주 아이템 — 저주 +${Math.ceil(curseItem.curse * 0.55)}, 탐욕 +1. 팔수록 가게가 던전에 가까워집니다.`;
+      els.matchHints.append(cn);
+    }
   } else {
     els.survivalValue.textContent = "--%";
     els.survivalBar.style.width = "0%";
@@ -779,6 +792,17 @@ function loadState() {
   }
 }
 
+function skipCustomer() {
+  if (state.gameOver || state.customerIndex > CUSTOMERS_PER_DAY) return;
+  const name = state.customer.name;
+  state.reputation -= 3;
+  state.investigation = Math.max(0, state.investigation - 1);
+  addLog(`${name}을 빈손으로 돌려보냈습니다. 뒤도 안 돌아봤습니다.`);
+  advanceCustomer();
+  checkEnding();
+  render();
+}
+
 function resetGame() {
   localStorage.removeItem(SAVE_KEY);
   state = createInitialState();
@@ -807,6 +831,7 @@ function tagLabel(value) {
 
 function bindEvents() {
   els.sellButton.addEventListener("click", sellAndSend);
+  els.skipButton.addEventListener("click", skipCustomer);
   els.nextDayButton.addEventListener("click", startNextDay);
   els.resetButton.addEventListener("click", resetGame);
 }
