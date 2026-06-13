@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>환불 없음: 던전 상점 프로토타입</title>
+    <link rel="stylesheet" href="src/styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">플레이어블 프로토타입</p>
+          <h1>환불 없음: 던전 상점</h1>
+        </div>
+        <div class="meters" aria-label="진행 수치">
+          <div class="meter"><span>날짜</span><strong id="dayValue">1</strong></div>
+          <div class="meter"><span>골드</span><strong id="goldValue">0</strong></div>
+          <div class="meter"><span>평판</span><strong id="repValue">0</strong></div>
+          <div class="meter"><span>탐욕</span><strong id="greedValue">0</strong></div>
+          <div class="meter danger"><span>조사</span><strong id="investValue">0</strong></div>
+          <div class="meter curse"><span>저주</span><strong id="curseValue">0</strong></div>
+        </div>
+      </header>
+
+      <section class="game-grid" aria-label="던전 상점 프로토타입">
+        <aside class="panel customer-panel">
+          <div class="section-title">
+            <span>손님</span>
+            <strong id="queueValue">1 / 5</strong>
+          </div>
+          <div class="customer-card">
+            <div class="portrait" id="portrait">
+              <span id="portraitGlyph">F</span>
+            </div>
+            <div>
+              <h2 id="customerName">손님</h2>
+              <p id="customerClass">직업</p>
+            </div>
+          </div>
+          <dl class="brief">
+            <div>
+              <dt>필요</dt>
+              <dd id="customerNeed">무기</dd>
+            </div>
+            <div>
+              <dt>던전</dt>
+              <dd id="customerDungeon">입구</dd>
+            </div>
+            <div>
+              <dt>성향</dt>
+              <dd id="customerTemper">침착함</dd>
+            </div>
+          </dl>
+          <blockquote id="customerLine">"여긴 가격이든 던전이든 한 번만 아프다면서요."</blockquote>
+          <div class="survival-box">
+            <span>생존 예상</span>
+            <strong id="survivalValue">--%</strong>
+            <div class="bar-track">
+              <div class="bar-fill" id="survivalBar"></div>
+            </div>
+          </div>
+        </aside>
+
+        <section class="shop-stage" aria-label="상점 디오라마">
+          <div class="shop-backdrop">
+            <div class="moon"></div>
+            <div class="dungeon-door">
+              <span>던전</span>
+            </div>
+            <div class="shelves left-shelf">
+              <span></span><span></span><span></span>
+            </div>
+            <div class="shelves right-shelf">
+              <span></span><span></span><span></span>
+            </div>
+            <div class="counter">
+              <span id="counterItem">제안 없음</span>
+            </div>
+            <div class="customer-token" id="customerToken">
+              <span id="tokenGlyph">F</span>
+            </div>
+            <div class="floor-shadow"></div>
+          </div>
+          <div class="offer-strip">
+            <div>
+              <span>제안</span>
+              <strong id="offerName">재고 선택</strong>
+            </div>
+            <div>
+              <span>가격 정책</span>
+              <strong id="policyName">정가</strong>
+            </div>
+            <div>
+              <span>판매가</span>
+              <strong id="saleValue">0G</strong>
+            </div>
+          </div>
+        </section>
+
+        <aside class="panel stock-panel">
+          <div class="section-title">
+            <span>재고</span>
+            <button class="ghost-button" id="resetButton" type="button">초기화</button>
+          </div>
+          <div class="price-policies" id="policyButtons" aria-label="가격 정책"></div>
+          <div class="inventory-list" id="inventoryList" aria-label="재고 목록"></div>
+          <button class="primary-button" id="sellButton" type="button">판매하고 보내기</button>
+        </aside>
+      </section>
+
+      <section class="lower-grid">
+        <section class="panel market-panel">
+          <div class="section-title">
+            <span>아침 시장</span>
+            <strong id="marketStatus">영업 중</strong>
+          </div>
+          <div class="market-list" id="marketList"></div>
+        </section>
+
+        <section class="panel ledger-panel">
+          <div class="section-title">
+            <span>밤 장부</span>
+            <button class="primary-button small" id="nextDayButton" type="button">다음 날</button>
+          </div>
+          <ol class="log-list" id="logList"></ol>
+        </section>
+      </section>
+    </main>
+
+    <script src="src/game.js"></script>
+  </body>
+</html>
