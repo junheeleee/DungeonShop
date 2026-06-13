@@ -128,10 +128,20 @@
             <span>밤 장부</span>
             <button class="primary-button small" id="nextDayButton" type="button">다음 날</button>
           </div>
+          <div class="daily-event" id="dailyEvent" hidden></div>
           <ol class="log-list" id="logList"></ol>
         </section>
       </section>
     </main>
+
+    <div class="game-over-overlay" id="gameOverOverlay" hidden>
+      <div class="game-over-card">
+        <p class="game-over-label">영업 종료</p>
+        <h2 id="gameOverEnding">—</h2>
+        <dl class="game-over-stats" id="gameOverStats"></dl>
+        <button class="primary-button" id="gameOverRestart" type="button">다시 시작</button>
+      </div>
+    </div>
 
     <script src="src/game.js"></script>
   </body>
