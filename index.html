@@ -17,9 +17,7 @@
           <div class="meter"><span>날짜</span><strong id="dayValue">1</strong></div>
           <div class="meter"><span>골드</span><strong id="goldValue">0</strong></div>
           <div class="meter"><span>평판</span><strong id="repValue">0</strong></div>
-          <div class="meter"><span>탐욕</span><strong id="greedValue">0</strong></div>
           <div class="meter danger"><span>조사</span><strong id="investValue">0</strong></div>
-          <div class="meter curse"><span>저주</span><strong id="curseValue">0</strong></div>
         </div>
       </header>
 
@@ -27,7 +25,10 @@
         <aside class="panel customer-panel">
           <div class="section-title">
             <span>손님</span>
-            <strong id="queueValue">1 / 5</strong>
+            <div class="queue-meta">
+              <strong id="queueValue">1 / 5</strong>
+              <span class="death-tally" id="deathCount"></span>
+            </div>
           </div>
           <div class="customer-card">
             <div class="portrait" id="portrait">
@@ -46,10 +47,6 @@
             <div>
               <dt>던전</dt>
               <dd id="customerDungeon">입구</dd>
-            </div>
-            <div>
-              <dt>성향</dt>
-              <dd id="customerTemper">침착함</dd>
             </div>
           </dl>
           <blockquote id="customerLine">"여긴 가격이든 던전이든 한 번만 아프다면서요."</blockquote>

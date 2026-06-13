@@ -3,42 +3,9 @@ const CUSTOMERS_PER_DAY = 5;
 const SAVE_KEY = "dungeon-shop-prototype-v2-ko";
 
 const PRICE_POLICIES = [
-  {
-    id: "mercy",
-    name: "자비가",
-    multiplier: 0.82,
-    rep: 2,
-    greed: -1,
-    investigation: -1,
-    survival: 0.03,
-  },
-  {
-    id: "fair",
-    name: "정가",
-    multiplier: 1,
-    rep: 0,
-    greed: 0,
-    investigation: 0,
-    survival: 0,
-  },
-  {
-    id: "markup",
-    name: "바가지",
-    multiplier: 1.35,
-    rep: -1,
-    greed: 1,
-    investigation: 1,
-    survival: -0.02,
-  },
-  {
-    id: "no_refunds",
-    name: "환불 없음",
-    multiplier: 1.75,
-    rep: -3,
-    greed: 3,
-    investigation: 3,
-    survival: -0.05,
-  },
+  { id: "mercy", name: "자비가", multiplier: 0.78, rep: 3, investigation: -1, survival: 0.08 },
+  { id: "fair", name: "정가", multiplier: 1.0, rep: 0, investigation: 0, survival: 0 },
+  { id: "markup", name: "바가지", multiplier: 1.55, rep: -3, investigation: 3, survival: -0.10 },
 ];
 
 const ARCHETYPES = [
@@ -164,62 +131,6 @@ const ITEM_CATALOG = [
   { name: "드래곤 방지 꼬리표", type: "relic", power: 7, cost: 31, basePrice: 63, tags: ["fire", "boss"] },
 ];
 
-const DAILY_EVENTS = [
-  {
-    text: "도매상이 술에 취해 왔습니다. 오늘 시장 물건이 20% 쌉니다.",
-    apply(s) { s.market.forEach((i) => { i.cost = Math.floor(i.cost * 0.8); }); },
-  },
-  {
-    text: "기사단 순찰이 지나갔습니다. 조사 수치가 낮아졌습니다. 조사 -8.",
-    apply(s) { s.investigation = Math.max(0, s.investigation - 8); },
-  },
-  {
-    text: "지역 신문에 가게가 실렸습니다. 평판 +5.",
-    apply(s) { s.reputation += 5; },
-  },
-  {
-    text: "모험가 길드에서 감사 편지가 왔습니다. 팁 15G 동봉.",
-    apply(s) { s.gold += 15; },
-  },
-  {
-    text: "정체불명의 손님이 저주받은 물건을 두고 사라졌습니다.",
-    apply(s) {
-      s.inventory.push(createInventoryItem({
-        name: "정체불명의 꾸러미",
-        type: "relic",
-        power: 5,
-        cost: 0,
-        basePrice: randomInt(40, 65),
-        tags: ["curse"],
-        curse: 8,
-      }));
-    },
-  },
-  {
-    text: "세무관이 근처를 지나갔습니다. 조사 +6.",
-    apply(s) { s.investigation += 6; },
-  },
-  {
-    text: "단골 모험가가 술집에서 가게를 칭찬했습니다. 평판 +3.",
-    apply(s) { s.reputation += 3; },
-  },
-  {
-    text: "밤새 저주받은 선반이 재고 하나를 삼켰습니다.",
-    apply(s) {
-      const idx = s.inventory.findIndex((i) => !i.bloodstained);
-      if (idx >= 0) s.inventory.splice(idx, 1);
-    },
-  },
-  {
-    text: "던전 소문: 오늘은 드래곤이 배부릅니다. 손님들이 안심합니다. 평판 +2.",
-    apply(s) { s.reputation += 2; },
-  },
-  {
-    text: "근처 경쟁 가게가 문을 닫았습니다. 손님 몇 명이 발길을 돌렸습니다. +12G.",
-    apply(s) { s.gold += 12; },
-  },
-];
-
 const FIRST_NAMES = [
   "브란",
   "미라",
@@ -233,14 +144,6 @@ const FIRST_NAMES = [
   "야라",
   "다인",
   "리오",
-];
-
-const TEMPERAMENTS = [
-  { name: "신중함", survival: 0.05, priceTolerance: -0.05 },
-  { name: "자존심 강함", survival: -0.02, priceTolerance: 0.04 },
-  { name: "절박함", survival: -0.04, priceTolerance: 0.08 },
-  { name: "운 좋음", survival: 0.08, priceTolerance: 0 },
-  { name: "망할 운명", survival: -0.08, priceTolerance: 0.12 },
 ];
 
 const TYPE_LABELS = {
@@ -276,17 +179,14 @@ function createInitialState() {
     customerIndex: 1,
     gold: 90,
     reputation: 50,
-    greed: 0,
     investigation: 0,
-    curse: 0,
     inventory,
     market: drawItems(3).map((item) => createInventoryItem(item)),
     selectedItemId: inventory[0]?.uid ?? null,
     pricePolicy: "fair",
-    customer: createCustomer(1, []),
+    customer: createCustomer(),
     log: ["임대 계약 완료. 던전 문 포함. 책임 보험 미포함."],
-    regulars: [],
-    todayEvent: null,
+    todayDeaths: 0,
     gameOver: false,
     ending: null,
   };
@@ -327,7 +227,7 @@ function cacheElements() {
     "logList",
     "matchHints",
     "skipButton",
-    "dailyEvent",
+    "deathCount",
     "gameOverOverlay",
     "gameOverEnding",
     "gameOverStats",
@@ -357,37 +257,17 @@ function drawItems(count) {
   return result;
 }
 
-function createCustomer(day, regulars) {
-  const returning = regulars.length > 0 && Math.random() < Math.min(0.28, 0.07 + day * 0.005);
-  if (returning) {
-    const regular = choose(regulars);
-    const hazard = choose(HAZARDS);
-    const need = choose(regular.archetype.needs);
-    const temper = choose(TEMPERAMENTS);
-    return {
-      ...regular,
-      returning: true,
-      hazard,
-      need,
-      temper,
-      line: "또 왔어. 이 가게는 대부분만 저주받았다고 결론냈거든.",
-    };
-  }
-
+function createCustomer() {
   const archetype = choose(ARCHETYPES);
   const name = `${choose(FIRST_NAMES)} ${surnameFor(archetype)}`;
   const hazard = choose(HAZARDS);
   const need = choose(archetype.needs);
-  const temper = choose(TEMPERAMENTS);
   return {
     id: crypto.randomUUID(),
     name,
     archetype,
-    returning: false,
     hazard,
     need,
-    temper,
-    visits: 0,
     line: choose(archetype.lines),
   };
 }
@@ -412,10 +292,10 @@ function render() {
   els.dayValue.textContent = state.day;
   els.goldValue.textContent = `${state.gold}G`;
   els.repValue.textContent = state.reputation;
-  els.greedValue.textContent = state.greed;
   els.investValue.textContent = state.investigation;
-  els.curseValue.textContent = state.curse;
   els.queueValue.textContent = `${state.customerIndex} / ${CUSTOMERS_PER_DAY}`;
+  els.deathCount.textContent = state.todayDeaths > 0 ? `오늘 사망 ${state.todayDeaths}명` : "";
+  els.deathCount.dataset.active = state.todayDeaths > 0 ? "true" : "false";
 
   renderCustomer(estimate);
   renderPolicies();
@@ -423,7 +303,7 @@ function render() {
   renderMarket();
   renderLedger();
 
-  els.offerName.textContent = selectedItem ? selectedItem.name : "재고 선택";
+  els.offerName.textContent = selectedItem ? selectedItem.name : "재고에서 선택";
   els.policyName.textContent = policy.name;
   els.saleValue.textContent = `${salePrice}G`;
   els.counterItem.textContent = selectedItem ? selectedItem.name : "제안 없음";
@@ -432,7 +312,6 @@ function render() {
   els.nextDayButton.disabled = state.gameOver || state.customerIndex <= CUSTOMERS_PER_DAY;
 
   els.investValue.parentElement.dataset.warn = state.investigation >= 70 ? "true" : "";
-  els.curseValue.parentElement.dataset.warn = state.curse >= 65 ? "true" : "";
   els.repValue.parentElement.dataset.warn = state.reputation <= 15 ? "true" : "";
 
   if (state.gameOver) {
@@ -444,13 +323,6 @@ function render() {
   } else {
     els.sellButton.textContent = "판매하고 보내기";
     els.nextDayButton.textContent = "다음 날";
-  }
-
-  if (state.todayEvent) {
-    els.dailyEvent.textContent = `📋 ${state.todayEvent}`;
-    els.dailyEvent.hidden = false;
-  } else {
-    els.dailyEvent.hidden = true;
   }
 
   document.body.dataset.gameOver = state.gameOver ? "true" : "false";
@@ -466,10 +338,10 @@ function renderCustomer(estimate) {
   els.tokenGlyph.textContent = archetype.glyph;
   els.customerToken.style.setProperty("--token-color", archetype.color);
   els.customerName.textContent = customer.name;
-  els.customerClass.textContent = customer.returning ? `${archetype.name} 단골` : archetype.name;
+  els.customerClass.textContent = archetype.name;
   els.customerNeed.textContent = typeLabel(customer.need);
-  els.customerDungeon.textContent = customer.hazard.name;
-  els.customerTemper.textContent = customer.temper.name;
+  const dangerTag = state.day > 20 ? " ⚠" : state.day > 10 ? " △" : "";
+  els.customerDungeon.textContent = customer.hazard.name + dangerTag;
   els.customerLine.textContent = `"${customer.line}"`;
   if (estimate) {
     const percent = Math.round(estimate.chance * 100);
@@ -480,20 +352,12 @@ function renderCustomer(estimate) {
     [
       ["필요 일치", estimate.needMatch],
       ["위험 대응", estimate.counterMatch],
-      ["태그 일치", estimate.tagMatch],
     ].forEach(([label, ok]) => {
       const s = document.createElement("span");
       s.className = `match-chip ${ok ? "chip-ok" : "chip-no"}`;
       s.textContent = `${ok ? "✓" : "✗"} ${label}`;
       els.matchHints.append(s);
     });
-    const curseItem = getSelectedItem();
-    if (curseItem && curseItem.curse) {
-      const cn = document.createElement("div");
-      cn.className = "curse-note";
-      cn.textContent = `⚠ 저주 아이템 — 저주 +${Math.ceil(curseItem.curse * 0.55)}, 탐욕 +1. 팔수록 가게가 던전에 가까워집니다.`;
-      els.matchHints.append(cn);
-    }
   } else {
     els.survivalValue.textContent = "--%";
     els.survivalBar.style.width = "0%";
@@ -515,7 +379,6 @@ function renderPolicies() {
 
     const parts = [];
     if (policy.rep !== 0) parts.push(`평판 ${policy.rep > 0 ? "+" : ""}${policy.rep}`);
-    if (policy.greed !== 0) parts.push(`탐욕 ${policy.greed > 0 ? "+" : ""}${policy.greed}`);
     if (policy.investigation !== 0) parts.push(`조사 ${policy.investigation > 0 ? "+" : ""}${policy.investigation}`);
     if (policy.survival !== 0) parts.push(`생존 ${policy.survival > 0 ? "+" : ""}${Math.round(policy.survival * 100)}%`);
     const effectSpan = document.createElement("span");
@@ -568,8 +431,7 @@ function renderInventory() {
     dots.className = "item-match-dots";
     [
       [itemEst.needMatch, "필요"],
-      [itemEst.counterMatch, "대응"],
-      [itemEst.tagMatch, "태그"],
+      [itemEst.counterMatch, "위험대응"],
     ].forEach(([ok, label]) => {
       const dot = document.createElement("span");
       dot.className = `item-dot ${ok ? "dot-ok" : "dot-no"}`;
@@ -641,14 +503,8 @@ function sellAndSend() {
   const injured = !survived && outcomeRoll <= estimate.chance + injuredBand;
 
   state.gold += salePrice;
-  state.greed += policy.greed;
   state.reputation += policy.rep;
   state.investigation += policy.investigation;
-
-  if (item.curse) {
-    state.curse += Math.ceil(item.curse * 0.55);
-    state.greed += 1;
-  }
 
   state.inventory = state.inventory.filter((candidate) => candidate.uid !== item.uid);
 
@@ -669,26 +525,14 @@ function resolveSurvival(item, salePrice, estimate) {
   const customer = state.customer;
   const bonus = Math.random() < 0.32 ? randomInt(4, 13) : 0;
   state.gold += bonus;
-  state.reputation += customer.returning ? 4 : 3;
-  state.investigation -= 1;
-
-  const regularExists = state.regulars.some((regular) => regular.id === customer.id);
-  if (!regularExists && estimate.chance >= 0.6 && Math.random() < 0.52) {
-    state.regulars.push({
-      id: customer.id,
-      name: customer.name,
-      archetype: customer.archetype,
-      visits: customer.visits + 1,
-    });
-    addLog(`${customer.name}이 ${item.name} 덕분에 살아 돌아와 단골이 됐습니다.`);
-  } else {
-    addLog(`${customer.name} 생존. ${bonus ? `팁 통에 ${bonus}G가 들어왔습니다.` : "팁은 없지만 숨은 붙어 있습니다."}`);
-  }
+  state.reputation += 3;
+  state.investigation = Math.max(0, state.investigation - 1);
+  addLog(`${customer.name} 생존. ${bonus ? `팁 ${bonus}G.` : "팁 없음. 살아있는 게 어딘가."}`);
 
   if (Math.random() < 0.18) {
     const loot = createInventoryItem(createLootItem(customer.hazard));
     state.inventory.push(loot);
-    addLog(`${customer.name}이 탐험 후 ${loot.name}을 팔고 갔습니다.`);
+    addLog(`↩ ${customer.name}이 ${loot.name}을 팔고 갔습니다.`);
   }
 }
 
@@ -696,23 +540,23 @@ function resolveInjury(item, salePrice, estimate) {
   const customer = state.customer;
   state.reputation -= 2;
   state.investigation += 2;
-  if (item.curse) state.curse += 2;
-  addLog(`${customer.name}이 절뚝이며 살아 돌아왔습니다. 영수증은 이제 의료 기록입니다.`);
+  addLog(`${customer.name}이 절뚝이며 돌아왔습니다. 영수증은 이제 의료 기록입니다.`);
 }
 
 function resolveDeath(item, salePrice, estimate) {
   const customer = state.customer;
   const recovered = createInventoryItem(item, true);
+  recovered.name = `${customer.name}의 ${item.name}`;
   recovered.power = Math.max(1, item.power - randomInt(0, 1));
-  recovered.basePrice = Math.ceil(item.basePrice * 0.92);
+  recovered.basePrice = Math.ceil(item.basePrice * 0.88);
   state.inventory.push(recovered);
-  state.reputation -= 5;
-  state.investigation += 7 + (item.curse ? 5 : 0);
-  state.greed += 3;
+  state.reputation -= 6;
+  state.investigation += 8;
+  state.todayDeaths += 1;
 
-  const salvage = randomInt(5, 22) + Math.max(0, item.power - 2);
+  const salvage = randomInt(4, 18) + Math.max(0, item.power - 2);
   state.gold += salvage;
-  addLog(`${customer.name}이 ${customer.hazard.name}에서 사망했습니다. ${item.name}과 흩어진 전리품 ${salvage}G를 회수했습니다.`);
+  addLog(`✦ ${customer.name} 사망 — ${customer.hazard.name}. 장비 회수. 잡동사니 ${salvage}G.`);
 }
 
 function createLootItem(hazard) {
@@ -738,33 +582,28 @@ function createLootItem(hazard) {
 function advanceCustomer() {
   if (state.customerIndex >= CUSTOMERS_PER_DAY) {
     state.customerIndex += 1;
-    state.customer = createCustomer(state.day, state.regulars);
+    state.customer = createCustomer();
     applyNightPressure();
-    addLog(`${state.day}일차 마감. 아직 ${state.regulars.length}명의 단골이 가게 주소를 압니다.`);
+    addLog(`${state.day}일차 마감.`);
     return;
   }
   state.customerIndex += 1;
-  state.customer = createCustomer(state.day, state.regulars);
+  state.customer = createCustomer();
   if (!state.selectedItemId || !state.inventory.some((item) => item.uid === state.selectedItemId)) {
     state.selectedItemId = state.inventory[0]?.uid ?? null;
   }
 }
 
 function applyNightPressure() {
-  if (state.curse >= 35 && Math.random() < 0.28) {
-    const rent = randomInt(6, 16);
-    state.gold -= rent;
-    addLog(`저주받은 선반이 동전 ${rent}G를 삼켰습니다.`);
-  }
   if (state.investigation >= 55 && Math.random() < 0.35) {
     const fine = randomInt(8, 24);
     state.gold -= fine;
     state.reputation -= 2;
-    addLog(`조사관이 투구가 왜 비명을 지르는지 물었습니다. 벌금 ${fine}G를 냈습니다.`);
+    addLog(`조사관 방문. 벌금 ${fine}G.`);
   }
   if (state.reputation >= 70 && Math.random() < 0.3) {
     state.gold += 10;
-    addLog("좋은 평판 덕분에 선불 손님이 왔습니다. +10G.");
+    addLog("평판 덕분에 선불 손님. +10G.");
   }
 }
 
@@ -772,23 +611,18 @@ function startNextDay() {
   if (state.gameOver || state.customerIndex <= CUSTOMERS_PER_DAY) return;
   state.day += 1;
   state.customerIndex = 1;
+  state.todayDeaths = 0;
   state.market = drawItems(3).map((item) => createInventoryItem(item));
-  state.todayEvent = null;
-  if (Math.random() < 0.42) {
-    const event = choose(DAILY_EVENTS);
-    event.apply(state);
-    state.todayEvent = event.text;
-    addLog(`[사건] ${event.text}`);
-  }
   if (state.inventory.length < 3) {
     const emergency = drawItems(3 - state.inventory.length).map((item) => createInventoryItem(item));
     state.inventory.push(...emergency);
     state.reputation -= 2;
     addLog("도매상이 아주 못생긴 외상 조건으로 재고를 채워줬습니다.");
   }
-  state.customer = createCustomer(state.day, state.regulars);
+  state.customer = createCustomer();
   state.selectedItemId = state.inventory[0]?.uid ?? null;
-  addLog(`${state.day}일차 개점. 던전 문은 아직 배고픕니다.`);
+  const band = state.day > 20 ? "⚠ 위험 구간" : state.day > 10 ? "△ 주의 구간" : "평범한 하루";
+  addLog(`${state.day}일차 — ${band}.`);
   checkEnding();
   render();
 }
@@ -797,13 +631,11 @@ function checkEnding() {
   if (state.gameOver) return;
   let ending = null;
   if (state.investigation >= 100) ending = "왕국이 영웅 과실치사 혐의로 가게를 폐쇄했습니다.";
-  if (state.curse >= 100) ending = "가게가 던전이 됐습니다. 엄밀히 말하면 수직계열화입니다.";
-  if (state.reputation <= 0) ending = "소리치러 오는 사람 말고는 어떤 모험가도 들어오지 않습니다.";
+  if (state.reputation <= 0) ending = "아무도 들어오지 않습니다. 소리치러 오는 사람 말고는.";
   if (state.gold < -30) ending = "빚쟁이들이 계산대를 압류했습니다.";
   if (state.day > MAX_DAYS) {
-    if (state.reputation >= 70 && state.greed < 45) ending = "정직한 납품업자 엔딩: 수상할 정도로 멀쩡합니다.";
-    else if (state.gold >= 450 && state.investigation < 90) ending = "부유한 용의자 엔딩: 돈 많고, 감시받고, 아직 영업 중.";
-    else if (state.curse >= 65) ending = "저주받은 상인 엔딩: 수익성 있는 속삭임은 영원합니다.";
+    if (state.reputation >= 70) ending = "정직한 납품업자 엔딩: 수상할 정도로 멀쩡합니다.";
+    else if (state.gold >= 500) ending = "부유한 용의자 엔딩: 돈 많고, 감시받고, 아직 영업 중.";
     else ending = "생존자 엔딩: 30일, 가게 하나, 면책 조항 다수.";
   }
   if (ending) {
@@ -815,34 +647,25 @@ function checkEnding() {
 
 function estimateSurvival(customer, item, policy) {
   const hazard = customer.hazard;
-  let chance = 0.48;
+  let chance = 0.44;
   const needMatch = item.type === customer.need;
   const counterMatch = hazard.counters.includes(item.type);
-  const tagMatch = item.tags.some((tag) => hazard.tags.includes(tag));
 
-  chance += item.power * 0.045;
-  chance += needMatch ? 0.14 : -0.1;
-  chance += counterMatch ? 0.1 : -0.04;
-  chance += tagMatch ? 0.09 : 0;
-  chance += customer.temper.survival;
-  chance += policy.survival + customer.temper.priceTolerance * Math.max(0, policy.multiplier - 1);
+  chance += item.power * 0.05;
+  chance += needMatch ? 0.18 : -0.12;
+  chance += counterMatch ? 0.12 : -0.04;
+  chance += policy.survival;
   chance -= hazard.danger;
-  chance -= Math.max(0, state.curse - 20) * 0.0025;
-  chance += customer.returning ? 0.05 : 0;
-  if (item.curse) chance += item.curse * 0.006;
 
-  return {
-    chance: clamp(chance, 0.06, 0.92),
-    needMatch,
-    counterMatch,
-    tagMatch,
-  };
+  if (state.day > 20) chance -= 0.14;
+  else if (state.day > 10) chance -= 0.07;
+
+  return { chance: clamp(chance, 0.05, 0.92), needMatch, counterMatch };
 }
 
 function getSalePrice(item, policy) {
-  const bloodMoney = item.bloodstained ? 0.9 : 1;
-  const cursePremium = item.curse ? 1.12 : 1;
-  return Math.ceil(item.basePrice * item.markupMemory * policy.multiplier * bloodMoney * cursePremium);
+  const bloodDiscount = item.bloodstained ? 0.88 : 1;
+  return Math.ceil(item.basePrice * item.markupMemory * policy.multiplier * bloodDiscount);
 }
 
 function getSelectedItem() {
@@ -860,9 +683,7 @@ function addLog(message) {
 
 function clampRunMeters() {
   state.reputation = clamp(Math.round(state.reputation), -20, 100);
-  state.greed = clamp(Math.round(state.greed), 0, 100);
   state.investigation = clamp(Math.round(state.investigation), 0, 120);
-  state.curse = clamp(Math.round(state.curse), 0, 120);
   state.gold = Math.round(state.gold);
 }
 
