@@ -40,7 +40,7 @@
           </div>
           <dl class="brief">
             <div>
-              <dt>필요</dt>
+              <dt>찾는 물건</dt>
               <dd id="customerNeed">무기</dd>
             </div>
             <div>
@@ -85,15 +85,15 @@
           </div>
           <div class="offer-strip">
             <div>
-              <span>제안</span>
-              <strong id="offerName">재고 선택</strong>
+              <span>판매할 아이템</span>
+              <strong id="offerName">재고에서 선택</strong>
             </div>
             <div>
               <span>가격 정책</span>
               <strong id="policyName">정가</strong>
             </div>
             <div>
-              <span>판매가</span>
+              <span>받을 금액</span>
               <strong id="saleValue">0G</strong>
             </div>
           </div>
@@ -101,7 +101,10 @@
 
         <aside class="panel stock-panel">
           <div class="section-title">
-            <span>재고</span>
+            <div>
+              <span>내 재고</span>
+              <small class="panel-hint">아이템 선택 → 아래 버튼으로 손님에게 판매</small>
+            </div>
             <button class="ghost-button" id="resetButton" type="button">초기화</button>
           </div>
           <div class="price-policies" id="policyButtons" aria-label="가격 정책"></div>
@@ -116,10 +119,12 @@
       <section class="lower-grid">
         <section class="panel market-panel">
           <div class="section-title">
-            <span>아침 시장</span>
+            <div>
+              <span>도매 시장</span>
+              <small class="panel-hint">구매 → 내 재고에 추가됨 · 매일 첫 손님 전에만</small>
+            </div>
             <strong id="marketStatus">영업 중</strong>
           </div>
-          <p class="market-note">매일 첫 손님 전에만 구매 가능</p>
           <div class="market-list" id="marketList"></div>
         </section>
 

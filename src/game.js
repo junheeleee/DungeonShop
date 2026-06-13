@@ -598,7 +598,7 @@ function renderMarket() {
 
     const button = document.createElement("button");
     button.type = "button";
-    button.textContent = "구매";
+    button.textContent = "재고에 추가";
     button.disabled = state.customerIndex !== 1 || state.gold < item.cost || state.gameOver;
     button.addEventListener("click", () => buyMarketItem(item.uid));
 
@@ -623,7 +623,7 @@ function buyMarketItem(uid) {
   state.inventory.push(item);
   state.market = state.market.filter((candidate) => candidate.uid !== uid);
   state.selectedItemId = item.uid;
-  addLog(`${item.name}을 도매가 ${item.cost}G에 구매했습니다.`);
+  addLog(`${item.name}을 ${item.cost}G에 구매해 재고에 추가했습니다.`);
   render();
 }
 
