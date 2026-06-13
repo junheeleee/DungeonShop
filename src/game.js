@@ -164,6 +164,62 @@ const ITEM_CATALOG = [
   { name: "드래곤 방지 꼬리표", type: "relic", power: 7, cost: 31, basePrice: 63, tags: ["fire", "boss"] },
 ];
 
+const DAILY_EVENTS = [
+  {
+    text: "도매상이 술에 취해 왔습니다. 오늘 시장 물건이 20% 쌉니다.",
+    apply(s) { s.market.forEach((i) => { i.cost = Math.floor(i.cost * 0.8); }); },
+  },
+  {
+    text: "기사단 순찰이 지나갔습니다. 조사 수치가 낮아졌습니다. 조사 -8.",
+    apply(s) { s.investigation = Math.max(0, s.investigation - 8); },
+  },
+  {
+    text: "지역 신문에 가게가 실렸습니다. 평판 +5.",
+    apply(s) { s.reputation += 5; },
+  },
+  {
+    text: "모험가 길드에서 감사 편지가 왔습니다. 팁 15G 동봉.",
+    apply(s) { s.gold += 15; },
+  },
+  {
+    text: "정체불명의 손님이 저주받은 물건을 두고 사라졌습니다.",
+    apply(s) {
+      s.inventory.push(createInventoryItem({
+        name: "정체불명의 꾸러미",
+        type: "relic",
+        power: 5,
+        cost: 0,
+        basePrice: randomInt(40, 65),
+        tags: ["curse"],
+        curse: 8,
+      }));
+    },
+  },
+  {
+    text: "세무관이 근처를 지나갔습니다. 조사 +6.",
+    apply(s) { s.investigation += 6; },
+  },
+  {
+    text: "단골 모험가가 술집에서 가게를 칭찬했습니다. 평판 +3.",
+    apply(s) { s.reputation += 3; },
+  },
+  {
+    text: "밤새 저주받은 선반이 재고 하나를 삼켰습니다.",
+    apply(s) {
+      const idx = s.inventory.findIndex((i) => !i.bloodstained);
+      if (idx >= 0) s.inventory.splice(idx, 1);
+    },
+  },
+  {
+    text: "던전 소문: 오늘은 드래곤이 배부릅니다. 손님들이 안심합니다. 평판 +2.",
+    apply(s) { s.reputation += 2; },
+  },
+  {
+    text: "근처 경쟁 가게가 문을 닫았습니다. 손님 몇 명이 발길을 돌렸습니다. +12G.",
+    apply(s) { s.gold += 12; },
+  },
+];
+
 const FIRST_NAMES = [
   "브란",
   "미라",
@@ -230,6 +286,7 @@ function createInitialState() {
     customer: createCustomer(1, []),
     log: ["임대 계약 완료. 던전 문 포함. 책임 보험 미포함."],
     regulars: [],
+    todayEvent: null,
     gameOver: false,
     ending: null,
   };
@@ -270,6 +327,11 @@ function cacheElements() {
     "logList",
     "matchHints",
     "skipButton",
+    "dailyEvent",
+    "gameOverOverlay",
+    "gameOverEnding",
+    "gameOverStats",
+    "gameOverRestart",
   ].forEach((id) => {
     els[id] = document.getElementById(id);
   });
@@ -384,7 +446,15 @@ function render() {
     els.nextDayButton.textContent = "다음 날";
   }
 
+  if (state.todayEvent) {
+    els.dailyEvent.textContent = `📋 ${state.todayEvent}`;
+    els.dailyEvent.hidden = false;
+  } else {
+    els.dailyEvent.hidden = true;
+  }
+
   document.body.dataset.gameOver = state.gameOver ? "true" : "false";
+  renderGameOver();
   saveState();
 }
 
@@ -438,7 +508,21 @@ function renderPolicies() {
     button.type = "button";
     button.className = "policy-button";
     button.dataset.active = policy.id === state.pricePolicy ? "true" : "false";
-    button.textContent = policy.name;
+
+    const nameSpan = document.createElement("span");
+    nameSpan.className = "policy-name";
+    nameSpan.textContent = `${policy.name} ×${policy.multiplier}`;
+
+    const parts = [];
+    if (policy.rep !== 0) parts.push(`평판 ${policy.rep > 0 ? "+" : ""}${policy.rep}`);
+    if (policy.greed !== 0) parts.push(`탐욕 ${policy.greed > 0 ? "+" : ""}${policy.greed}`);
+    if (policy.investigation !== 0) parts.push(`조사 ${policy.investigation > 0 ? "+" : ""}${policy.investigation}`);
+    if (policy.survival !== 0) parts.push(`생존 ${policy.survival > 0 ? "+" : ""}${Math.round(policy.survival * 100)}%`);
+    const effectSpan = document.createElement("span");
+    effectSpan.className = "policy-effects";
+    effectSpan.textContent = parts.length ? parts.join(" | ") : "변화 없음";
+
+    button.append(nameSpan, effectSpan);
     button.addEventListener("click", () => {
       state.pricePolicy = policy.id;
       render();
@@ -473,7 +557,8 @@ function renderInventory() {
     title.textContent = item.bloodstained ? `${item.name} (회수품)` : item.name;
     const meta = document.createElement("span");
     meta.className = "item-meta";
-    meta.textContent = `${typeLabel(item.type)} | 위력 ${item.power} | ${getSalePrice(item, getPolicy())}G`;
+    const bloodNote = item.bloodstained ? " | 회수품 -10%" : "";
+    meta.textContent = `${typeLabel(item.type)} | 위력 ${item.power} | ${getSalePrice(item, getPolicy())}G${bloodNote}`;
     const badge = document.createElement("span");
     badge.className = "item-badge";
     badge.textContent = item.curse ? `저주 ${item.curse}` : tagLabel(item.tags[0]);
@@ -688,6 +773,13 @@ function startNextDay() {
   state.day += 1;
   state.customerIndex = 1;
   state.market = drawItems(3).map((item) => createInventoryItem(item));
+  state.todayEvent = null;
+  if (Math.random() < 0.42) {
+    const event = choose(DAILY_EVENTS);
+    event.apply(state);
+    state.todayEvent = event.text;
+    addLog(`[사건] ${event.text}`);
+  }
   if (state.inventory.length < 3) {
     const emergency = drawItems(3 - state.inventory.length).map((item) => createInventoryItem(item));
     state.inventory.push(...emergency);
@@ -792,6 +884,31 @@ function loadState() {
   }
 }
 
+function renderGameOver() {
+  if (!state.gameOver) {
+    els.gameOverOverlay.hidden = true;
+    return;
+  }
+  els.gameOverOverlay.hidden = false;
+  els.gameOverEnding.textContent = state.ending ?? "알 수 없는 결말";
+  els.gameOverStats.innerHTML = "";
+  [
+    ["최종 골드", `${state.gold}G`],
+    ["평판", state.reputation],
+    ["탐욕", state.greed],
+    ["조사", state.investigation],
+    ["저주", state.curse],
+    ["영업일", `${state.day}일`],
+    ["단골", `${state.regulars.length}명`],
+  ].forEach(([label, value]) => {
+    const dt = document.createElement("dt");
+    dt.textContent = label;
+    const dd = document.createElement("dd");
+    dd.textContent = value;
+    els.gameOverStats.append(dt, dd);
+  });
+}
+
 function skipCustomer() {
   if (state.gameOver || state.customerIndex > CUSTOMERS_PER_DAY) return;
   const name = state.customer.name;
@@ -834,6 +951,7 @@ function bindEvents() {
   els.skipButton.addEventListener("click", skipCustomer);
   els.nextDayButton.addEventListener("click", startNextDay);
   els.resetButton.addEventListener("click", resetGame);
+  els.gameOverRestart.addEventListener("click", resetGame);
 }
 
 cacheElements();
