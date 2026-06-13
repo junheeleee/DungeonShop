@@ -1,6 +1,6 @@
 const MAX_DAYS = 30;
 const CUSTOMERS_PER_DAY = 5;
-const SAVE_KEY = "dungeon-shop-prototype-v2-ko";
+const SAVE_KEY = "dungeon-shop-prototype-v3-ko";
 
 const PRICE_POLICIES = [
   { id: "mercy", name: "자비가", multiplier: 0.78, rep: 3, investigation: -1, survival: 0.08 },
@@ -187,6 +187,7 @@ function createInitialState() {
     customer: createCustomer(),
     log: ["임대 계약 완료. 던전 문 포함. 책임 보험 미포함."],
     todayDeaths: 0,
+    returningCustomers: [],
     gameOver: false,
     ending: null,
   };
@@ -197,9 +198,7 @@ function cacheElements() {
     "dayValue",
     "goldValue",
     "repValue",
-    "greedValue",
     "investValue",
-    "curseValue",
     "queueValue",
     "portrait",
     "portraitGlyph",
@@ -207,7 +206,6 @@ function cacheElements() {
     "customerClass",
     "customerNeed",
     "customerDungeon",
-    "customerTemper",
     "customerLine",
     "survivalValue",
     "survivalBar",
@@ -450,17 +448,22 @@ function renderMarket() {
   state.market.forEach((item) => {
     const row = document.createElement("div");
     row.className = "market-row";
+    if (item.fromReturning) row.dataset.returning = "true";
 
     const copy = document.createElement("div");
     const name = document.createElement("strong");
     name.textContent = item.name;
     const details = document.createElement("span");
-    details.textContent = `${typeLabel(item.type)} | 원가 ${item.cost}G | 위력 ${item.power}`;
+    if (item.fromReturning) {
+      details.textContent = `↩ ${item.fromReturning}의 전리품 | ${typeLabel(item.type)} | 위력 ${item.power} | ${item.cost}G`;
+    } else {
+      details.textContent = `${typeLabel(item.type)} | 원가 ${item.cost}G | 위력 ${item.power}`;
+    }
     copy.append(name, details);
 
     const button = document.createElement("button");
     button.type = "button";
-    button.textContent = "재고에 추가";
+    button.textContent = item.fromReturning ? "전리품 구매" : "재고에 추가";
     button.disabled = state.customerIndex !== 1 || state.gold < item.cost || state.gameOver;
     button.addEventListener("click", () => buyMarketItem(item.uid));
 
@@ -529,10 +532,13 @@ function resolveSurvival(item, salePrice, estimate) {
   state.investigation = Math.max(0, state.investigation - 1);
   addLog(`${customer.name} 생존. ${bonus ? `팁 ${bonus}G.` : "팁 없음. 살아있는 게 어딘가."}`);
 
-  if (Math.random() < 0.18) {
-    const loot = createInventoryItem(createLootItem(customer.hazard));
-    state.inventory.push(loot);
-    addLog(`↩ ${customer.name}이 ${loot.name}을 팔고 갔습니다.`);
+  // Stronger customers (higher item power) are more likely to return with loot
+  const returnChance = 0.28 + Math.min(item.power * 0.04, 0.22);
+  if (Math.random() < returnChance) {
+    const loot = createLootItem(customer.hazard);
+    loot.cost = Math.ceil(loot.basePrice * 0.45);
+    state.returningCustomers.push({ name: customer.name, archetype: customer.archetype, loot });
+    addLog(`↩ ${customer.name}이 내일 전리품을 들고 올 것 같습니다.`);
   }
 }
 
@@ -612,7 +618,21 @@ function startNextDay() {
   state.day += 1;
   state.customerIndex = 1;
   state.todayDeaths = 0;
-  state.market = drawItems(3).map((item) => createInventoryItem(item));
+
+  // Process returning customers — their loot enters the market at a discount
+  const returnOffers = state.returningCustomers.map((rc) => {
+    const lootItem = createInventoryItem(rc.loot);
+    lootItem.fromReturning = rc.name;
+    return lootItem;
+  });
+  if (returnOffers.length > 0) {
+    const names = state.returningCustomers.map((rc) => rc.name).join(", ");
+    addLog(`↩ ${names}이 전리품을 들고 돌아왔습니다.`);
+  }
+  state.returningCustomers = [];
+
+  state.market = [...returnOffers, ...drawItems(3).map((item) => createInventoryItem(item))];
+
   if (state.inventory.length < 3) {
     const emergency = drawItems(3 - state.inventory.length).map((item) => createInventoryItem(item));
     state.inventory.push(...emergency);
@@ -700,6 +720,7 @@ function loadState() {
     const saved = JSON.parse(localStorage.getItem(SAVE_KEY));
     if (!saved || !saved.inventory || !saved.customer) return;
     state = saved;
+    if (!state.returningCustomers) state.returningCustomers = [];
   } catch {
     state = createInitialState();
   }
@@ -716,11 +737,8 @@ function renderGameOver() {
   [
     ["최종 골드", `${state.gold}G`],
     ["평판", state.reputation],
-    ["탐욕", state.greed],
     ["조사", state.investigation],
-    ["저주", state.curse],
     ["영업일", `${state.day}일`],
-    ["단골", `${state.regulars.length}명`],
   ].forEach(([label, value]) => {
     const dt = document.createElement("dt");
     dt.textContent = label;

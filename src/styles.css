@@ -768,6 +768,15 @@ button:disabled {
   color: #071009;
 }
 
+.market-row[data-returning="true"] {
+  border-color: rgba(111, 159, 114, 0.55);
+  background: rgba(111, 159, 114, 0.08);
+}
+
+.market-row[data-returning="true"] span {
+  color: var(--green);
+}
+
 .log-list {
   display: grid;
   max-height: 230px;
