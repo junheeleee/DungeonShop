@@ -156,6 +156,17 @@ h1 {
   color: var(--brass);
 }
 
+.panel-hint {
+  display: block;
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  line-height: 1.3;
+}
+
 .customer-card {
   display: grid;
   grid-template-columns: 72px 1fr;
