@@ -268,6 +268,7 @@ function cacheElements() {
     "marketStatus",
     "nextDayButton",
     "logList",
+    "matchHints",
   ].forEach((id) => {
     els[id] = document.getElementById(id);
   });
@@ -399,9 +400,21 @@ function renderCustomer(estimate) {
     els.survivalValue.textContent = `${percent}%`;
     els.survivalBar.style.width = `${percent}%`;
     els.survivalBar.dataset.risk = percent < 35 ? "bad" : percent < 62 ? "mid" : "good";
+    els.matchHints.innerHTML = "";
+    [
+      ["필요 일치", estimate.needMatch],
+      ["위험 대응", estimate.counterMatch],
+      ["태그 일치", estimate.tagMatch],
+    ].forEach(([label, ok]) => {
+      const s = document.createElement("span");
+      s.className = `match-chip ${ok ? "chip-ok" : "chip-no"}`;
+      s.textContent = `${ok ? "✓" : "✗"} ${label}`;
+      els.matchHints.append(s);
+    });
   } else {
     els.survivalValue.textContent = "--%";
     els.survivalBar.style.width = "0%";
+    els.matchHints.innerHTML = "";
   }
 }
 
@@ -452,7 +465,21 @@ function renderInventory() {
     badge.className = "item-badge";
     badge.textContent = item.curse ? `저주 ${item.curse}` : tagLabel(item.tags[0]);
 
-    button.append(title, meta, badge);
+    const itemEst = estimateSurvival(state.customer, item, getPolicy());
+    const dots = document.createElement("div");
+    dots.className = "item-match-dots";
+    [
+      [itemEst.needMatch, "필요"],
+      [itemEst.counterMatch, "대응"],
+      [itemEst.tagMatch, "태그"],
+    ].forEach(([ok, label]) => {
+      const dot = document.createElement("span");
+      dot.className = `item-dot ${ok ? "dot-ok" : "dot-no"}`;
+      dot.title = `${label} ${ok ? "일치" : "불일치"}`;
+      dots.append(dot);
+    });
+
+    button.append(title, meta, badge, dots);
     els.inventoryList.append(button);
   });
 }

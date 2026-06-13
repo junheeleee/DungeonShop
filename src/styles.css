@@ -248,6 +248,51 @@ blockquote {
   background: var(--brass);
 }
 
+.match-hints {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.match-chip {
+  padding: 3px 8px;
+  border-radius: 3px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.chip-ok {
+  background: rgba(111, 159, 114, 0.22);
+  color: var(--green);
+}
+
+.chip-no {
+  background: rgba(248, 239, 224, 0.06);
+  color: var(--muted);
+}
+
+.item-match-dots {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  margin-top: 6px;
+}
+
+.item-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(248, 239, 224, 0.15);
+}
+
+.dot-ok {
+  background: var(--green);
+  box-shadow: 0 0 4px rgba(111, 159, 114, 0.5);
+}
+
 .bar-fill[data-risk="bad"] {
   background: var(--red);
 }
